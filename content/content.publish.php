@@ -26,19 +26,10 @@ class contentExtensionTemplatesPublish extends contentPublish
 		// Reorder:
 		if(isset($_GET['up']) || isset($_GET['down']))
 		{
-/*			$section_id = SectionManager::fetchIDFromHandle($this->_context['section_handle']);
-			$entries = EntryManager::fetch(null, $section_id);
-			$section = SectionManager::fetch($section_id);*/
-			$pages = PageManager::fetch(true, array('title'), array(), null, true);
+			$pages = PageManager::fetchByXPath('page', 'sortorder', 'asc', true);
 			$new_pages = $this->sortPages($pages);
 
-
-/*			$templatesFieldID = array_pop(array_keys($section->fetchFields('templates')));
-			$new_entries = array();
-			$new_entries = $this->sortEntries($new_entries, $entries, $pages, $templatesFieldID);*/
-
 			// Switch sortorder:
-			$can_proceed = false;
 			if(isset($_GET['up']))
 			{
 				$count = 0;
@@ -75,7 +66,7 @@ class contentExtensionTemplatesPublish extends contentPublish
 					if($page['id'] == $_GET['down'])
 					{
 						// Switch with the next item on this level:
-						for($i=$count + 1; $i<count($new_pages); $i++)
+						for($i=$count+1; $i<count($new_pages); $i++)
 						{
 							if($new_pages[$i]['indent'] == $page['indent'])
 							{
@@ -118,16 +109,18 @@ class contentExtensionTemplatesPublish extends contentPublish
 				0, true, __('Create a new page')
 			)
 		);
-		$fields = FieldManager::fetch(null, null, 'ASC', 'sortorder', 'templates');
+
+		$fields = FieldManager::fetchByXPath('section/fields/field[type=\'templates\']', 'sortorder', 'asc');
 		$field_ids = array_keys($fields);
 		$all_used_templates = array();
 		foreach($field_ids as $field_id)
 		{
-			$field = FieldManager::fetch($field_id);
-			// print_r($field->get('parent_section'));
+			$field = FieldManager::fetchByXPath('section/fields/field[unique_hash=\''.FieldManager::lookup()->getHash($field_id).'\']');
+			$field = $field[$field_id];
+
 			$ids = explode(',', $field->get('allowed_templates'));
-			// $all_used_templates = array_merge($all_used_templates, $ids);
-			$section = SectionManager::fetch($field->get('parent_section'));
+			$section = SectionManager::fetchByXPath('section[unique_hash=\''.SectionManager::lookup()->getHash($field->get('parent_section')).'\']');
+
 			foreach($ids as $page_id)
 			{
 				$page = PageManager::fetchPageByID($page_id);
@@ -164,19 +157,20 @@ class contentExtensionTemplatesPublish extends contentPublish
 		// Table Body
 		$aTableBody = array();
 
-		$pages = PageManager::fetch(true, array('title'), array(), null, true);
+		$pages = PageManager::fetchByXPath('page', 'sortorder', 'asc', true);
 		$new_pages = $this->sortPages($pages);
 
 		// Provide pages with links to their proper sections/entries:
 		// Find sections which use the templates-field:
-		$fieldIDs = Symphony::Database()->fetch('SELECT `id`, `parent_section` FROM `tbl_fields` WHERE `type` = \'templates\';');
+		$foundFields = FieldManager::fetchByXPath('section/fields/field[type=\'templates\']');
 		$pageIDs  = array();
-		foreach($fieldIDs as $row)
+		foreach($foundFields as $row)
 		{
 			$results = Symphony::Database()->fetch(
-				sprintf('SELECT `entry_id`, `template`, `page_id` FROM `tbl_entries_data_%d`;', $row['id'])
+				sprintf('SELECT `entry_id`, `template`, `page_id` FROM `tbl_entries_data_%d`;', $row->get('id'))
 			);
-			$section = SectionManager::fetch($row['parent_section']);
+
+			$section = SectionManager::fetchByXPath('section[unique_hash=\''.SectionManager::lookup()->getHash($row->get('parent_section')).'\']');
 
 			foreach($results as $result)
 			{
@@ -187,10 +181,12 @@ class contentExtensionTemplatesPublish extends contentPublish
 
 		$count = 0;
 
+		// print_r($new_pages);
+
 		foreach($new_pages as $page)
 		{
 			// Ignore 'template' and 'template_hide':
-			if(in_array('template', $page['type']) || in_array('template_hide', $page['type'])) { continue; }
+			// if(in_array('template', $page['type']) || in_array('template_hide', $page['type'])) { continue; }
 
 			$upLink   = false;
 			$downLink = false;
@@ -218,6 +214,8 @@ class contentExtensionTemplatesPublish extends contentPublish
 			}
 
 			// Check according to the indention:
+			// echo $page['title'] . ' count:'.$count.' - indent:'.$page['indent'].' - current:'.$new_pages[$count + 1]['title'].'<br />';
+			// Current page index = $count + 1;
 			for($i = $count + 1; $i < count($new_pages); $i++)
 			{
 				if($new_pages[$i]['indent'] < $page['indent']) {
@@ -332,6 +330,8 @@ class contentExtensionTemplatesPublish extends contentPublish
 			if($indent != 0) { $prefix.='›&emsp;'; }
 			$page['title'] = $prefix.$page['title'];
 			$page['indent'] = $indent;
+			// Ignore templates and hidden pages.
+			if(in_array('template', $page['type']) || in_array('template_hide', $page['type'])) { continue; }
 			$new_pages[] = $page;
 			if(count($page['children']) > 0)
 			{

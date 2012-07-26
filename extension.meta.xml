@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<extension id="templates" xmlns="http://symphony-cms.com/schemas/extension/1.0">
+	<name>Templates</name>
+	<description>Use pages as templates for clients to create new pages on the go.</description>
+	<repo type="github">https://github.com/kanduvisla/templates</repo>
+    <types>
+        <type>Workflow</type>
+    </types>
+	<authors>
+		<author>
+			<name github="kanduvisla" symphony="kanduvisla">Giel Berkers</name>
+            <email>info@gielberkers.com</email>
+            <website>http://www.gielberkers.com</website>
+		</author>
+	</authors>
+	<releases>
+        <release version="1.0" date="2012-07-09" min="2.3"/>
+	</releases>
+</extension>

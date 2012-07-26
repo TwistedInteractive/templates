@@ -1,0 +1,41 @@
+th.templates-actions, td.templates-actions {
+	text-align: right;
+}
+td.templates-actions a, td.templates-actions span.up, td.templates-actions span.down {
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+	outline: none;
+	border: none;
+	padding: 0;
+	margin: 0;
+	opacity: .3;
+}
+td.templates-actions span.up, td.templates-actions span.down {
+	opacity: .05;
+}
+td.templates-actions a:hover {
+	opacity: 1;
+}
+td.templates-actions a span {
+	display: none;
+}
+td.templates-actions .up {
+	background: url("arrow_top.png") no-repeat;
+}
+td.templates-actions .down {
+	background: url("arrow_bottom.png") no-repeat;
+}
+td.templates-actions a.view {
+	background: url("eye.png") no-repeat;
+}
+tr.non-editable {
+	color: #888;
+}
+tr.non-editable.selected td {
+	background: inherit;
+	color: inherit;
+}
+table.selectable tr.non-editable td {
+	cursor: default;
+}

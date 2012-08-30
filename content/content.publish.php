@@ -26,16 +26,8 @@ class contentExtensionTemplatesPublish extends contentPublish
 		// Reorder:
 		if(isset($_GET['up']) || isset($_GET['down']))
 		{
-/*			$section_id = SectionManager::fetchIDFromHandle($this->_context['section_handle']);
-			$entries = EntryManager::fetch(null, $section_id);
-			$section = SectionManager::fetch($section_id);*/
 			$pages = PageManager::fetch(true, array('title'), array(), null, true);
 			$new_pages = $this->sortPages($pages);
-
-
-/*			$templatesFieldID = array_pop(array_keys($section->fetchFields('templates')));
-			$new_entries = array();
-			$new_entries = $this->sortEntries($new_entries, $entries, $pages, $templatesFieldID);*/
 
 			// Switch sortorder:
 			$can_proceed = false;
@@ -327,6 +319,7 @@ class contentExtensionTemplatesPublish extends contentPublish
 	{
 		foreach($pages as $page)
 		{
+			if(in_array('template', $page['type']) || in_array('template_hide', $page['type'])) { continue; }
 			$prefix = '';
 			for($i = 0; $i < $indent; $i++) { $prefix .= '&emsp;'; }
 			if($indent != 0) { $prefix.='›&emsp;'; }

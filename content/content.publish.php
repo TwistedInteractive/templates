@@ -120,6 +120,7 @@ class contentExtensionTemplatesPublish extends contentPublish
 			$ids = explode(',', $field->get('allowed_templates'));
 			// $all_used_templates = array_merge($all_used_templates, $ids);
 			$section = SectionManager::fetch($field->get('parent_section'));
+			$ids = array_filter($ids);
 			foreach($ids as $page_id)
 			{
 				$page = PageManager::fetchPageByID($page_id);

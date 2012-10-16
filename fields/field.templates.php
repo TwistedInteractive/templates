@@ -80,8 +80,9 @@ Class fieldTemplates extends Field
 	public function commit()
 	{
 		parent::commit();
-		$id = $this->get('id');		
-		return FieldManager::saveSettings($id, array('allowed_templates'=>implode(',', $this->get('templates'))));
+		$id = $this->get('id');
+		$templates = !is_array($this->get('templates')) ? '' : implode(',', $this->get('templates'));
+		return FieldManager::saveSettings($id, array('allowed_templates'=>$templates));
 	}
 
 	private function populatePages($options, $pages, $parent, $indent = 0)

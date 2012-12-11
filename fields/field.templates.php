@@ -314,6 +314,9 @@ Class fieldTemplates extends Field
 
 		if (strlen($value) == 0) $value = __('None');
 
+		// Convert special characters to HTML entities to prevent XSL missing entity errors
+		$value = htmlspecialchars($value);
+
 		if ($link) {
 			$link->setValue($value);
 			return $link->generate();

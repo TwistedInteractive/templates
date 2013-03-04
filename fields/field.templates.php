@@ -468,5 +468,14 @@ Class fieldTemplates extends Field
 		return true;
 	}
 
+	public function appendFormattedElement(XMLElement &$wrapper, $data, $encode = false, $mode = null, $entry_id = null)
+	{
+		$wrapper->appendChild(
+			new XMLElement($this->get('element_name'),
+				($encode ? General::sanitize($this->prepareTableValue($data, null, $entry_id)) : $this->prepareTableValue($data, null, $entry_id)),
+				array('id' => $data['page_id'])
+			)
+		);
+	}
 
 }

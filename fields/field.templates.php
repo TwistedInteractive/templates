@@ -23,6 +23,51 @@ Class fieldTemplates extends Field
 		return true;
 	}
 
+	public function canToggle(){
+		// Check if this section uses a pagesfield and is in migration mode:
+		if($this->get('migration') == 1)
+		{
+			$fields = FieldManager::fetchFieldsSchema($this->get('parent_section'));
+			foreach($fields as $field)
+			{
+				if($field['type'] == 'pages') {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	public function getToggleStates()
+	{
+		$states = array();
+		// According to pages field:
+		$fields = FieldManager::fetchFieldsSchema($this->get('parent_section'));
+		foreach($fields as $field)
+		{
+			if($field['type'] == 'pages') {
+				$states[$field['id']] = __('According to \'%s\'', array($field['element_name']));
+			}
+		}
+		return $states;
+	}
+
+	public function toggleFieldData($data, $newState, $entryId)
+	{
+		// $newState = ID of reference pages field
+		$entry = EntryManager::fetch($entryId);
+		$pagesData = $entry[0]->getData($newState);
+
+		// Migration, only create the link:
+		$page = PageManager::fetchPageByID($pagesData['page_id']);
+
+		$data['page_id'] = $pagesData['page_id'];
+		$data['title'] = $pagesData['title'];
+		$data['parent'] = $page['parent'];
+
+		return $data;
+	}
+
 	public function displaySettingsPanel(XMLElement &$wrapper, $errors = null)
 	{
 		// Create header
@@ -72,6 +117,17 @@ Class fieldTemplates extends Field
 		$wrapper->appendChild($label);
 
 		$div = new XMLElement('div', NULL, array('class' => 'two columns'));
+		$div->appendChild(
+			new XMLElement('label', __('%s Migration mode (allows you to link already existing entries to pages)',
+					array(Widget::Input('fields['.$this->get('sortorder').'][migration]', 'yes', 'checkbox', (
+						$this->get('migration') == 1 ? array('checked' => 'checked') : null
+					))->generate())
+				), array('class' => 'column')
+			)
+		);
+		$wrapper->appendChild($div);
+
+		$div = new XMLElement('div', NULL, array('class' => 'two columns'));
 		$this->appendShowColumnCheckbox($div);
 		$this->appendRequiredCheckbox($div);
 		$wrapper->appendChild($div);
@@ -82,7 +138,8 @@ Class fieldTemplates extends Field
 		parent::commit();
 		$id = $this->get('id');
 		$templates = !is_array($this->get('templates')) ? '' : implode(',', $this->get('templates'));
-		return FieldManager::saveSettings($id, array('allowed_templates'=>$templates));
+		$migrate   = $this->get('migration') ? 1 : 0;
+		return FieldManager::saveSettings($id, array('allowed_templates'=>$templates, 'migration'=>$migrate));
 	}
 
 	private function populatePages($options, $pages, $parent, $indent = 0)
@@ -104,28 +161,51 @@ Class fieldTemplates extends Field
 		return $options;
 	}
 
+
 	public function displayPublishPanel(XMLElement &$wrapper, $data = null, $flagWithError = null, $fieldnamePrefix = null, $fieldnamePostfix = null, $entry_id = null){
-		// Page title:
-		$fieldname = 'fields'.$fieldnamePrefix.'['.$this->get('element_name').'][title]'.$fieldnamePostfix;
-		$label = Widget::Label(__('Page title'));
-		if($this->get('required') != 'yes') $label->appendChild(new XMLElement('i', __('Optional')));
-		$label->appendChild(Widget::Input($fieldname, $data['title']));
-		$wrapper->appendChild($label);
+		if($this->get('migration') == 1)
+		{
+			// Migration mode:
+			// Only link existing entries to pages:
+			$wrapper->addClass('migration');
+			$options = array(array(null, true, null));
 
-		// Page parent:
-		$options = array(array(null, true, null));
+			$pages = PageManager::fetch(true, array('title'), array(), null, true);
+			if(isset($pages['id'])) { $pages = array($pages); }
 
-		$pages = PageManager::fetch(true, array('title'), array(), null, true);
-		if(isset($pages['id'])) { $pages = array($pages); }
+			$options = $this->populatePages($options, $pages, $data['page_id']);
 
-		$options = $this->populatePages($options, $pages, $data['parent']);
+			$fieldname = 'fields'.$fieldnamePrefix.'['.$this->get('element_name').'][pageid]'.$fieldnamePostfix;
 
-		$fieldname = 'fields'.$fieldnamePrefix.'['.$this->get('element_name').'][parent]'.$fieldnamePostfix;
+			$label = Widget::Label(__('Linked page'));
+			$label->appendChild(new XMLElement('strong', __('** MIGRATION MODE **')));
+			$label->appendChild(Widget::Select($fieldname, $options));
 
-		$label = Widget::Label(__('Parent page'));
-		$label->appendChild(Widget::Select($fieldname, $options));
+			$wrapper->appendChild($label);
+		} else {
+			// The real deal, with overwriting of stuff and everything!
+			// Page title:
+			$fieldname = 'fields'.$fieldnamePrefix.'['.$this->get('element_name').'][title]'.$fieldnamePostfix;
+			$label = Widget::Label(__('Page title'));
+			if($this->get('required') != 'yes') $label->appendChild(new XMLElement('i', __('Optional')));
+			$label->appendChild(Widget::Input($fieldname, $data['title']));
+			$wrapper->appendChild($label);
 
-		$wrapper->appendChild($label);
+			// Page parent:
+			$options = array(array(null, true, null));
+
+			$pages = PageManager::fetch(true, array('title'), array(), null, true);
+			if(isset($pages['id'])) { $pages = array($pages); }
+
+			$options = $this->populatePages($options, $pages, $data['parent']);
+
+			$fieldname = 'fields'.$fieldnamePrefix.'['.$this->get('element_name').'][parent]'.$fieldnamePostfix;
+
+			$label = Widget::Label(__('Parent page'));
+			$label->appendChild(Widget::Select($fieldname, $options));
+
+			$wrapper->appendChild($label);
+		}
 
 		// Template picker:
 		$options = array();
@@ -173,98 +253,113 @@ Class fieldTemplates extends Field
 
 		if(!empty($data))
 		{
-			// Copy the page:
-			$page = PageManager::fetchPageByID($data['template']);
-
-			if(!empty($data['parent']))
+			if($this->get('migration') == 1)
 			{
-				$parent = PageManager::fetchPageByID($data['parent']);
-				$path   = (!empty($parent['path']) ? $parent['path'].'/' : '').$parent['handle'];
+				// Migration, only create the link:
+				$page = PageManager::fetchPageByID($data['pageid']);
+
+				$data['page_id'] = $data['pageid'];
+				$data['title'] = $page['title'];
+				$data['parent'] = $page['parent'];
+
+				unset($data['pageid']);
+
+				return $data;
 			} else {
-				$path = null;
-			}
 
-			$fields = array(
-				'parent' => $data['parent'],
-				'title'  => General::sanitize($data['title']),
-				'handle' => Lang::createHandle($data['title']),
-				'data_sources' => $page['data_sources'],
-				'events' => $page['events'],
-				'params' => $page['params'],
-				'path' => $path
-			);
+				// Copy the page:
+				$page = PageManager::fetchPageByID($data['template']);
 
-			if(empty($data['page_id']))
-			{
-				// Create new page:
-
-				// Check if there already exists a page with the same title on this path:
-				$where = array();
-				$where[] = "p.handle = '" . $fields['handle'] . "'";
-				$where[] = (is_null($fields['path'])) ? "p.path IS NULL" : "p.path = '" . $fields['path'] . "'";
-				$duplicate = PageManager::fetch(false, array('*'), $where);
-
-				if(empty($duplicate))
+				if(!empty($data['parent']))
 				{
-					$new_page_id = PageManager::add($fields);
+					$parent = PageManager::fetchPageByID($data['parent']);
+					$path   = (!empty($parent['path']) ? $parent['path'].'/' : '').$parent['handle'];
+				} else {
+					$path = null;
 				}
-			} else {
-				$new_page_id = $data['page_id'];
-				$old_page = PageManager::fetchPageByID($new_page_id);
-				$src_file = PageManager::resolvePageFileLocation($old_page['path'], $old_page['handle']);
 
-				// Check if the page exists:
-				$where = array();
-				$where[] = "p.id != {$data['page_id']}";
-				$where[] = "p.handle = '" . $fields['handle'] . "'";
-				$where[] = (is_null($fields['path'])) ? "p.path IS NULL" : "p.path = '" . $fields['path'] . "'";
-				$duplicate = PageManager::fetch(false, array('*'), $where);
+				$fields = array(
+					'parent' => $data['parent'],
+					'title'  => General::sanitize($data['title']),
+					'handle' => Lang::createHandle($data['title']),
+					'data_sources' => $page['data_sources'],
+					'events' => $page['events'],
+					'params' => $page['params'],
+					'path' => $path
+				);
 
-				if(empty($duplicate))
+				if(empty($data['page_id']))
 				{
-					// Delete old template file:
-					General::deleteFile($src_file);
-					PageManager::edit($new_page_id, $fields);
-				}
-			}
+					// Create new page:
 
-			if(!empty($duplicate))
-			{
-				// $this->_errors['title'] = __('A page with that title already exists');
-				Session::write('templates_error', __('A page with that title already exists.'));
-				redirect(Administration::instance()->getCurrentPageURL());
-			}
+					// Check if there already exists a page with the same title on this path:
+					$where = array();
+					$where[] = "p.handle = '" . $fields['handle'] . "'";
+					$where[] = (is_null($fields['path'])) ? "p.path IS NULL" : "p.path = '" . $fields['path'] . "'";
+					$duplicate = PageManager::fetch(false, array('*'), $where);
 
-			// Copy the types, only when a new page is created:
-			if(empty($data['page_id']))
-			{
-				$types = PageManager::fetchPageTypes($data['template']);
-				$new_types = array();
-				foreach($types as $type)
-				{
-					if($type != 'template' && $type != 'template_hide')
+					if(empty($duplicate))
 					{
-						$new_types[] = $type;
+						$new_page_id = PageManager::add($fields);
+					}
+				} else {
+					$new_page_id = $data['page_id'];
+					$old_page = PageManager::fetchPageByID($new_page_id);
+					$src_file = PageManager::resolvePageFileLocation($old_page['path'], $old_page['handle']);
+
+					// Check if the page exists:
+					$where = array();
+					$where[] = "p.id != {$data['page_id']}";
+					$where[] = "p.handle = '" . $fields['handle'] . "'";
+					$where[] = (is_null($fields['path'])) ? "p.path IS NULL" : "p.path = '" . $fields['path'] . "'";
+					$duplicate = PageManager::fetch(false, array('*'), $where);
+
+					if(empty($duplicate))
+					{
+						// Delete old template file:
+						General::deleteFile($src_file);
+						PageManager::edit($new_page_id, $fields);
 					}
 				}
-				PageManager::addPageTypesToPage($new_page_id, $new_types);
-			}
 
-			// Create the XSL template file:
-			$src_file = PageManager::createFilePath($page['path'], $page['handle']).'.xsl';
-			$dst_file = PageManager::resolvePageFileLocation($fields['path'], $fields['handle']);
+				if(!empty($duplicate))
+				{
+					// $this->_errors['title'] = __('A page with that title already exists');
+					Session::write('templates_error', __('A page with that title already exists.'));
+					redirect(Administration::instance()->getCurrentPageURL());
+				}
 
-			$xsl = '<?xml version="1.0" encoding="UTF-8"?>
+				// Copy the types, only when a new page is created:
+				if(empty($data['page_id']))
+				{
+					$types = PageManager::fetchPageTypes($data['template']);
+					$new_types = array();
+					foreach($types as $type)
+					{
+						if($type != 'template' && $type != 'template_hide')
+						{
+							$new_types[] = $type;
+						}
+					}
+					PageManager::addPageTypesToPage($new_page_id, $new_types);
+				}
+
+				// Create the XSL template file:
+				$src_file = PageManager::createFilePath($page['path'], $page['handle']).'.xsl';
+				$dst_file = PageManager::resolvePageFileLocation($fields['path'], $fields['handle']);
+
+				$xsl = '<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 	<xsl:include href="'.$src_file.'" />
 </xsl:stylesheet>';
 
-			file_put_contents($dst_file, $xsl);
-			// copy($src_file, $dst_file);
+				file_put_contents($dst_file, $xsl);
+				// copy($src_file, $dst_file);
 
-			$data['page_id'] = $new_page_id;
+				$data['page_id'] = $new_page_id;
 
-			return $data;
+				return $data;
+			}
 		}
 	}
 

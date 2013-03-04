@@ -36,6 +36,7 @@ Class extension_templates extends Extension
 				`id` int(11) unsigned NOT NULL auto_increment,
 				`field_id` int(11) unsigned NOT NULL,
 				`allowed_templates` VARCHAR(255) NULL,
+				`migration` int(1) NOT NULL,
 				PRIMARY KEY  (`id`),
 				KEY `field_id` (`field_id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;

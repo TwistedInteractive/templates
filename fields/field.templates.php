@@ -163,6 +163,7 @@ Class fieldTemplates extends Field
 
 
 	public function displayPublishPanel(XMLElement &$wrapper, $data = null, $flagWithError = null, $fieldnamePrefix = null, $fieldnamePostfix = null, $entry_id = null){
+		Administration::instance()->Page->addScriptToHead(URL . '/extensions/templates/assets/templates.js');
 		if($this->get('migration') == 1)
 		{
 			// Migration mode:

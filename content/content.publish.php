@@ -113,6 +113,7 @@ class contentExtensionTemplatesPublish extends contentPublish
 		$fields = FieldManager::fetch(null, null, 'ASC', 'sortorder', 'templates');
 		$field_ids = array_keys($fields);
 		$all_used_templates = array();
+		$displayColumns = array();
 		foreach($field_ids as $field_id)
 		{
 			$field = FieldManager::fetch($field_id);
@@ -131,6 +132,15 @@ class contentExtensionTemplatesPublish extends contentPublish
 					'section' => $section->get('handle')
 				);
 			}
+
+			$a = FieldManager::fetch(null, $section->get('id'), 'ASC', 'sortorder', null, null, 'AND `show_column` = \'yes\'');
+			foreach($a as $showColumn)
+			{
+				if($showColumn->get('type') != 'templates') {
+					$displayColumns[] = $showColumn;
+				}
+			}
+
 		}
 
 		foreach($all_used_templates as $used_template)
@@ -149,10 +159,17 @@ class contentExtensionTemplatesPublish extends contentPublish
 		$this->appendSubheading(__('Pages'), $subheading_buttons);
 
 		$aTableHead = array(
-			array(__('Page'), 'col'),
-			array(__('Template'), 'col'),
-			array(__('Actions'), 'col', array('class'=>'templates-actions'))
+			array(__('Page'), 'col')
 		);
+
+		// Add the fields that need to be displayed:
+		foreach($displayColumns as $column)
+		{
+			$aTableHead[] = array($column->get('label'), 'col');
+		}
+
+		$aTableHead[] = array(__('Template'), 'col');
+		$aTableHead[] = array(__('Actions'), 'col', array('class'=>'templates-actions'));
 
 		// Table Body
 		$aTableBody = array();
@@ -196,9 +213,18 @@ class contentExtensionTemplatesPublish extends contentPublish
 				$templatePage = PageManager::fetchPageByID($pageIDs[$page['id']]['template']);
 				$tableData = array(
 					Widget::TableData(Widget::Anchor($page['title'], sprintf('%s/publish/%s/edit/%d/',
-						SYMPHONY_URL, $pageIDs[$page['id']]['section_handle'], $pageIDs[$page['id']]['entry_id']))->generate()),
-					Widget::TableData($templatePage['title'])
-				);
+						SYMPHONY_URL, $pageIDs[$page['id']]['section_handle'], $pageIDs[$page['id']]['entry_id']))->generate()));
+
+				foreach($displayColumns as $column)
+				{
+					$entry = EntryManager::fetch($pageIDs[$page['id']]['entry_id']);
+					$field = FieldManager::fetch($column->get('id'));
+					/* @var $field Field */
+					$value = $field->prepareTableValue($entry[0]->getData($column->get('id')));
+					$tableData[] = Widget::TableData($value);
+				}
+
+				$tableData[] = Widget::TableData($templatePage['title']);
 				// Add a checkbox:
 				$tableData[count($tableData) - 1]->appendChild(Widget::Input('items['.$page['id'].']', NULL, 'checkbox'));
 			} else {

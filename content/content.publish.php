@@ -38,6 +38,7 @@ class contentExtensionTemplatesPublish extends contentPublish
 				{
 					if($page['id'] == $_GET['up'])
 					{
+						// This is the page that needs to be moved.
 						// Switch with the next item on this level:
 						for($i=$count-1; $i>=0; $i--)
 						{
@@ -48,6 +49,10 @@ class contentExtensionTemplatesPublish extends contentPublish
 
 								$sortorder1 = $page1['sortorder'];
 								$sortorder2 = $page2['sortorder'];
+
+								// In case of a funky scenario where the sortorders are identical (yes, this actually
+								// happened once), 'hack' the sortorder.
+								if($sortorder1 == $sortorder2) { $sortorder2--; }
 
 								PageManager::edit($page1['id'], array('sortorder'=>$sortorder2));
 								PageManager::edit($page2['id'], array('sortorder'=>$sortorder1));
@@ -76,6 +81,8 @@ class contentExtensionTemplatesPublish extends contentPublish
 
 								$sortorder1 = $page1['sortorder'];
 								$sortorder2 = $page2['sortorder'];
+
+								if($sortorder1 == $sortorder2) { $sortorder2++; }
 
 								PageManager::edit($page1['id'], array('sortorder'=>$sortorder2));
 								PageManager::edit($page2['id'], array('sortorder'=>$sortorder1));

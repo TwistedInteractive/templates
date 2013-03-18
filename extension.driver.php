@@ -97,12 +97,12 @@ Class extension_templates extends Extension
 
 	public function addToNavigation($context)
 	{
-		$i = 300;
-		while(isset($context['navigation'][$i])) { $i--; }
-		$context['navigation'][$i] = array(
+		// Should be first:
+		array_unshift($context['navigation'], array(
 			'name' => __('Pages'),
-			'type' => 'structure',
-			'index' => $i,
+			'type' => 'content',
+			'index' => 0,
+			'link'    => '/extension/templates/publish/',
 			'children' => array(
 				array(
 					'link'    => '/extension/templates/publish/',
@@ -110,7 +110,7 @@ Class extension_templates extends Extension
 					'visible' => 'yes'
 				)
 			)
-        );
+		));
 	}
 
 	public function uninstall()

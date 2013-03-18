@@ -154,8 +154,8 @@ class contentExtensionTemplatesPublish extends contentPublish
 		{
 			$create_new_options[] = array(
 				SYMPHONY_URL.'/publish/'.$used_template['section'].'/new/?t='.$used_template['page'], 
-				false, 
-				$used_template['name']
+				false,
+				preg_replace('/Template\s*:\s*/i', '', $used_template['name'])
 			);
 		}
 
@@ -231,15 +231,17 @@ class contentExtensionTemplatesPublish extends contentPublish
 					$tableData[] = Widget::TableData($value);
 				}
 
-				$tableData[] = Widget::TableData($templatePage['title']);
+				$tableData[] = Widget::TableData(preg_replace('/Template\s*:\s*/i', '', $templatePage['title']));
 				// Add a checkbox:
 				$tableData[count($tableData) - 1]->appendChild(Widget::Input('items['.$page['id'].']', NULL, 'checkbox'));
 			} else {
 				// There doesn't exist an entry related to this page:
-				$tableData = array(
-					Widget::TableData($page['title']),
-					Widget::TableData('-')
-				);
+				$tableData = array(Widget::TableData($page['title']));
+				foreach($displayColumns as $column)
+				{
+					$tableData[] = Widget::TableData('-');
+				}
+				$tableData[] = Widget::TableData('-');
 				$className = 'non-editable';
 			}
 

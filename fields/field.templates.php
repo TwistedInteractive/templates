@@ -257,11 +257,14 @@ Class fieldTemplates extends Field
 			if($this->get('migration') == 1)
 			{
 				// Migration, only create the link:
-				$page = PageManager::fetchPageByID($data['pageid']);
+				if($data['pageid'])
+				{
+					$page = PageManager::fetchPageByID($data['pageid']);
 
-				$data['page_id'] = $data['pageid'];
-				$data['title'] = $page['title'];
-				$data['parent'] = $page['parent'];
+					$data['page_id'] = $data['pageid'];
+					$data['title'] = $page['title'];
+					$data['parent'] = $page['parent'];
+				}
 
 				unset($data['pageid']);
 

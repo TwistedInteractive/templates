@@ -480,7 +480,7 @@ Class fieldTemplates extends Field
 		$wrapper->appendChild(
 			new XMLElement($this->get('element_name'),
 				($encode ? General::sanitize($this->prepareTableValue($data, null, $entry_id)) : $this->prepareTableValue($data, null, $entry_id)),
-				array('id' => $data['page_id'])
+				array('id' => $data['page_id'], 'parent' => $data['parent'])
 			)
 		);
 	}

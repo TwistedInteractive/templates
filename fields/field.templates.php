@@ -1,11 +1,4 @@
 <?php
-/**
- * (c) 2012
- * Author: Giel Berkers
- * Date: 9-7-12
- * Time: 15:34
- */
-
 Class fieldTemplates extends Field
 {
 	public function __construct()

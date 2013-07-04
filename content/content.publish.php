@@ -1,11 +1,4 @@
 <?php
-/**
- * (c) 2012
- * Author: Giel Berkers
- * Date: 10-7-12
- * Time: 12:16
- */
-
 require_once(TOOLKIT . '/class.administrationpage.php');
 require_once(TOOLKIT . '/class.entrymanager.php');
 require_once(TOOLKIT . '/class.sectionmanager.php');

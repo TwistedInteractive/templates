@@ -2,16 +2,11 @@
 <extension id="templates" xmlns="http://symphony-cms.com/schemas/extension/1.0">
 	<name>Templates</name>
 	<description>Use pages as templates for clients to create new pages on the go.</description>
-	<repo type="github">https://github.com/kanduvisla/templates</repo>
+	<repo type="github">https://github.com/TwistedInteractive/templates</repo>
     <types>
         <type>Workflow</type>
     </types>
 	<authors>
-		<author>
-			<name github="kanduvisla" symphony="kanduvisla">Giel Berkers</name>
-            <email>info@gielberkers.com</email>
-            <website>http://www.gielberkers.com</website>
-		</author>
 	</authors>
 	<releases>
 		<release version="1.1" date="2013-03-18" min="2.3">
